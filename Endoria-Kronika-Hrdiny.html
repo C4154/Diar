@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Uíme se písmenka</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        h1 { margin: 10px 0; font-size: 20px; color: #333; }
+        #letters {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            max-width: 800px;
+            margin-bottom: 15px;
+        }
+        .letter-btn {
+            padding: 8px 12px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 2px solid #4CAF50;
+            background-color: white;
+            color: #4CAF50;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .letter-btn:hover, .letter-btn.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .canvas-container {
+            position: relative;
+            flex-grow: 1;
+            width: 100%;
+            max-width: 800px;
+            border: 4px dashed #ccc;
+            border-radius: 20px;
+            background-color: white;
+            overflow: hidden;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        #drawingCanvas { z-index: 2; }
+        #bgCanvas { z-index: 1; }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .action-btn {
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+        }
+        #clearBtn { background-color: #f44336; }
+        #demoBtn { background-color: #FF9800; }
+        
+        /* Oslavný palec nahoru */
+        #successOverlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 10;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 120px;
+            border-radius: 16px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Vyber písmenko a zkus ho napsat!</h1>
+    
+    <div id="letters"></div>
+
+    <div class="canvas-container">
+        <!-- Spodní plátno pro šedý obrys a animace -->
+        <canvas id="bgCanvas"></canvas>
+        <!-- Vrchní plátno pro kreslení prstem -->
+        <canvas id="drawingCanvas"></canvas>
+        
+        <div id="successOverlay"></div>
+    </div>
+
+    <div class="controls">
+        <button id="clearBtn" class="action-btn">Vymazat</button>
+        <button id="demoBtn" class="action-btn">Jak na to?</button>
+    </div>
+
+    <script>
+        const alphabet = ['A', 'B', 'C', '', 'D', '', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', '', 'O', 'P', 'Q', 'R', '', 'S', 'Š', 'T', '', 'U', 'V', 'W', 'X', 'Y', 'Z', 'Ž'];
+        const lettersDiv = document.getElementById('letters');
+        const drawCanvas = document.getElementById('drawingCanvas');
+        const bgCanvas = document.getElementById('bgCanvas');
+        const drawCtx = drawCanvas.getContext('2d', { willReadFrequently: true });
+        const bgCtx = bgCanvas.getContext('2d', { willReadFrequently: true });
+        
+        // Neviditelné plátno pro kontrolu pekryvu
+        const checkCanvas = document.createElement('canvas');
+        const checkCtx = checkCanvas.getContext('2d', { willReadFrequently: true });
+
+        let isDrawing = false;
+        let currentLetter = '';
+        let checkTimeout = null;
+
+        // Definice tah pro animaci a šipky (souadnice 0.0 až 1.0 podle velikosti plátna)
+        // Lze postupn doplovat další písmena.
+        const letterPaths = {
+            'A': [
+                { type: 'line', from: [0.5, 0.2], to: [0.25, 0.8] },
+                { type: 'line', from: [0.5, 0.2], to: [0.75, 0.8] },
+                { type: 'line', from: [0.35, 0.6], to: [0.65, 0.6] }
+            ],
+            'B': [
+                { type: 'line', from: [0.3, 0.2], to: [0.3, 0.8] },
+                { type: 'curve', from: [0.3, 0.2], control: [0.7, 0.2], to: [0.3, 0.5] },
+                { type: 'curve', from: [0.3, 0.5], control: [0.8, 0.5], to: [0.3, 0.8] }
+            ],
+            'C': [
+                { type: 'curve', from: [0.7, 0.3], control: [0.1, -0.1], to: [0.7, 0.8] }
+            ]
+        };
+
+        // Generování tlaítek
+        alphabet.forEach(letter => {
+            const btn = document.createElement('button');
+            btn.innerText = letter;
+            btn.className = 'letter-btn';
+            btn.onclick = () => selectLetter(letter, btn);
+            lettersDiv.appendChild(btn);
+        });
+
+        function resizeCanvases() {
+            const container = drawCanvas.parentElement;
+            [drawCanvas, bgCanvas, checkCanvas].forEach(c => {
+                c.width = container.clientWidth;
+                c.height = container.clientHeight;
+            });
+            drawTemplate();
+        }
+        window.addEventListener('resize', resizeCanvases);
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'cs-CZ';
+                utterance.rate = 0.8;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function selectLetter(letter, buttonElement) {
+            currentLetter = letter;
+            document.querySelectorAll('.letter-btn').forEach(btn => btn.classList.remove('active'));
+            if(buttonElement) buttonElement.classList.add('active');
+            
+            speak(letter);
+            clearDrawings();
+            document.getElementById('successOverlay').style.display = 'none';
+        }
+
+        function clearDrawings() {
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            drawTemplate();
+        }
+
+        // Vykreslení obrysu
+        function drawTemplate() {
+            if (!currentLetter) return;
+            
+            // Pro zobrazení dtem na pozadí
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgCtx.font = `bold ${bgCanvas.height * 0.7}px sans-serif`;
+            bgCtx.fillStyle = '#e0e0e0';
+            bgCtx.textAlign = 'center';
+            bgCtx.textBaseline = 'middle';
+            bgCtx.fillText(currentLetter, bgCanvas.width / 2, bgCanvas.height / 2);
+
+            // Pro kontrolní logiku do neviditelného plátna (ern)
+            checkCtx.clearRect(0, 0, checkCanvas.width, checkCanvas.height);
+            checkCtx.font = `bold ${checkCanvas.height * 0.7}px sans-serif`;
+            checkCtx.fillStyle = '#000000';
+            checkCtx.textAlign = 'center';
+            checkCtx.textBaseline = 'middle';
+            checkCtx.fillText(currentLetter, checkCanvas.width / 2, checkCanvas.height / 2);
+        }
+
+        // --- Logika kreslení (prst/myš) ---
+        function getPos(e) {
+            const rect = drawCanvas.getBoundingClientRect();
+            if (e.touches) {
+                return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+            }
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        function startPosition(e) {
+            e.preventDefault();
+            isDrawing = true;
+            const pos = getPos(e);
+            drawCtx.beginPath();
+            drawCtx.moveTo(pos.x, pos.y);
+            draw(e);
+            clearTimeout(checkTimeout); // Perušení kontroly bhem kreslení
+        }
+
+        function endPosition() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            drawCtx.beginPath();
+            
+            // Po 1 sekund od zvednutí prstu zkontrolujeme, jestli je písmeno hotové
+            checkTimeout = setTimeout(evaluateDrawing, 1000);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const pos = getPos(e);
+            
+            drawCtx.lineWidth = 22;
+            drawCtx.lineCap = 'round';
+            drawCtx.lineJoin = 'round';
+            drawCtx.strokeStyle = '#2196F3'; // Modrá barva fixy
+            
+            drawCtx.lineTo(pos.x, pos.y);
+            drawCtx.stroke();
+            drawCtx.beginPath();
+            drawCtx.moveTo(pos.x, pos.y);
+        }
+
+        // --- Vyhodnocení úspchu (Pixel coverage) ---
+        function evaluateDrawing() {
+            if (!currentLetter) return;
+            
+            const width = drawCanvas.width;
+            const height = drawCanvas.height;
+            const targetData = checkCtx.getImageData(0, 0, width, height).data;
+            const userData = drawCtx.getImageData(0, 0, width, height).data;
+
+            let targetPixels = 0;
+            let matchedPixels = 0;
+
+            // Projdeme obraz po pixelech
+            for (let i = 0; i < targetData.length; i += 4) {
+                const hasTarget = targetData[i + 3] > 0; // Alpha kanál pedlohy
+                const hasUser = userData[i + 3] > 0;     // Alpha kanál dtské kresby
+
+                if (hasTarget) {
+                    targetPixels++;
+                    if (hasUser) matchedPixels++;
+                }
+            }
+
+            // Pokud dít vymalovalo alespo 55 % plochy písmene
+            if (targetPixels > 0 && (matchedPixels / targetPixels) > 0.55) {
+                showSuccess();
+            }
+        }
+
+        function showSuccess() {
+            const overlay = document.getElementById('successOverlay');
+            overlay.style.display = 'flex';
+            speak("Výborn!");
+            
+            // Po 3 sekundách automaticky vyistit pro další pokus
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                clearDrawings();
+            }, 3000);
+        }
+
+        // --- Ukázka psaní (Animace a šipky) ---
+        async function playDemo() {
+            if (!currentLetter || !letterPaths[currentLetter]) {
+                speak("Tohle písmenko zatím musíme zkusit sami.");
+                return;
+            }
+            
+            clearDrawings();
+            const paths = letterPaths[currentLetter];
+            const w = bgCanvas.width;
+            const h = bgCanvas.height;
+            
+            bgCtx.lineWidth = 8;
+            bgCtx.lineCap = 'round';
+            bgCtx.strokeStyle = '#FF9800'; // Oranžová pro ukázku
+            
+            for (const path of paths) {
+                await animatePath(path, w, h);
+                drawArrow(path, w, h); // Nakreslí šipku na konci tahu
+            }
+            setTimeout(drawTemplate, 2500); // Vrátí obrys po ukázce
+        }
+
+        function animatePath(path, w, h) {
+            return new Promise(resolve => {
+                let progress = 0;
+                const startX = path.from[0] * w;
+                const startY = path.from[1] * h;
+                
+                function frame() {
+                    progress += 0.04; // Rychlost animace
+                    if (progress > 1) progress = 1;
+                    
+                    bgCtx.beginPath();
+                    bgCtx.moveTo(startX, startY);
+                    
+                    if (path.type === 'line') {
+                        const currentX = startX + (path.to[0] * w - startX) * progress;
+                        const currentY = startY + (path.to[1] * h - startY) * progress;
+                        bgCtx.lineTo(currentX, currentY);
+                    } else if (path.type === 'curve') {
+                        // Zjednodušená kvadratická kivka pro animaci
+                        const ctrlX = path.control[0] * w;
+                        const ctrlY = path.control[1] * h;
+                        const endX = path.to[0] * w;
+                        const endY = path.to[1] * h;
+                        
+                        const currX = Math.pow(1-progress, 2)*startX + 2*(1-progress)*progress*ctrlX + Math.pow(progress, 2)*endX;
+                        const currY = Math.pow(1-progress, 2)*startY + 2*(1-progress)*progress*ctrlY + Math.pow(progress, 2)*endY;
+                        bgCtx.quadraticCurveTo(ctrlX, ctrlY, currX, currY);
+                    }
+                    
+                    bgCtx.stroke();
+                    
+                    if (progress < 1) requestAnimationFrame(frame);
+                    else resolve();
+                }
+                frame();
+            });
+        }
+
+        function drawArrow(path, w, h) {
+            // Jednoduché pidání šipky na konec tahu
+            const endX = path.to[0] * w;
+            const endY = path.to[1] * h;
+            bgCtx.beginPath();
+            bgCtx.arc(endX, endY, 6, 0, Math.PI * 2);
+            bgCtx.fillStyle = '#f44336';
+            bgCtx.fill();
+        }
+
+        // Posluchae událostí
+        drawCanvas.addEventListener('mousedown', startPosition);
+        drawCanvas.addEventListener('mouseup', endPosition);
+        drawCanvas.addEventListener('mousemove', draw);
+        drawCanvas.addEventListener('mouseout', endPosition);
+
+        drawCanvas.addEventListener('touchstart', startPosition, { passive: false });
+        drawCanvas.addEventListener('touchend', endPosition);
+        drawCanvas.addEventListener('touchmove', draw, { passive: false });
+        drawCanvas.addEventListener('touchcancel', endPosition);
+
+        document.getElementById('clearBtn').addEventListener('click', clearDrawings);
+        document.getElementById('demoBtn').addEventListener('click', playDemo);
+
+        setTimeout(resizeCanvases, 100);
+        selectLetter('A', document.querySelector('.letter-btn')); // Vybere 'A' po startu
+    </script>
+</body>
+</html>
