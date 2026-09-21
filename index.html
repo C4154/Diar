@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UÌme se pÌsmenka</title>
+    <title>U√≠me se p√≠smenka</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -82,7 +82,7 @@
         #clearBtn { background-color: #f44336; }
         #demoBtn { background-color: #FF9800; }
         
-        /* Oslavn˝ palec nahoru */
+        /* Oslavn√Ω palec nahoru */
         #successOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -104,14 +104,14 @@
 </head>
 <body>
 
-    <h1>Vyber pÌsmenko a zkus ho napsat!</h1>
+    <h1>Vyber p√≠smenko a zkus ho napsat!</h1>
     
     <div id="letters"></div>
 
     <div class="canvas-container">
-        <!-- SpodnÌ pl·tno pro öed˝ obrys a animace -->
+        <!-- Spodn√≠ pl√°tno pro ≈°ed√Ω obrys a animace -->
         <canvas id="bgCanvas"></canvas>
-        <!-- VrchnÌ pl·tno pro kreslenÌ prstem -->
+        <!-- Vrchn√≠ pl√°tno pro kreslen√≠ prstem -->
         <canvas id="drawingCanvas"></canvas>
         
         <div id="successOverlay"></div>
@@ -123,14 +123,14 @@
     </div>
 
     <script>
-        const alphabet = ['A', 'B', 'C', '', 'D', '', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', '', 'O', 'P', 'Q', 'R', '', 'S', 'ä', 'T', '', 'U', 'V', 'W', 'X', 'Y', 'Z', 'é'];
+        const alphabet = ['A', 'B', 'C', '', 'D', '', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', '', 'O', 'P', 'Q', 'R', '', 'S', '≈†', 'T', '', 'U', 'V', 'W', 'X', 'Y', 'Z', '≈Ω'];
         const lettersDiv = document.getElementById('letters');
         const drawCanvas = document.getElementById('drawingCanvas');
         const bgCanvas = document.getElementById('bgCanvas');
         const drawCtx = drawCanvas.getContext('2d', { willReadFrequently: true });
         const bgCtx = bgCanvas.getContext('2d', { willReadFrequently: true });
         
-        // NeviditelnÈ pl·tno pro kontrolu pekryvu
+        // Neviditeln√© pl√°tno pro kontrolu pekryvu
         const checkCanvas = document.createElement('canvas');
         const checkCtx = checkCanvas.getContext('2d', { willReadFrequently: true });
 
@@ -138,8 +138,8 @@
         let currentLetter = '';
         let checkTimeout = null;
 
-        // Definice tah pro animaci a öipky (souadnice 0.0 aû 1.0 podle velikosti pl·tna)
-        // Lze postupn doplovat dalöÌ pÌsmena.
+        // Definice tah pro animaci a ≈°ipky (souadnice 0.0 a≈æ 1.0 podle velikosti pl√°tna)
+        // Lze postupn doplovat dal≈°√≠ p√≠smena.
         const letterPaths = {
             'A': [
                 { type: 'line', from: [0.5, 0.2], to: [0.25, 0.8] },
@@ -156,7 +156,7 @@
             ]
         };
 
-        // Generov·nÌ tlaÌtek
+        // Generov√°n√≠ tla√≠tek
         alphabet.forEach(letter => {
             const btn = document.createElement('button');
             btn.innerText = letter;
@@ -200,11 +200,11 @@
             drawTemplate();
         }
 
-        // VykreslenÌ obrysu
+        // Vykreslen√≠ obrysu
         function drawTemplate() {
             if (!currentLetter) return;
             
-            // Pro zobrazenÌ dtem na pozadÌ
+            // Pro zobrazen√≠ dtem na pozad√≠
             bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
             bgCtx.font = `bold ${bgCanvas.height * 0.7}px sans-serif`;
             bgCtx.fillStyle = '#e0e0e0';
@@ -212,7 +212,7 @@
             bgCtx.textBaseline = 'middle';
             bgCtx.fillText(currentLetter, bgCanvas.width / 2, bgCanvas.height / 2);
 
-            // Pro kontrolnÌ logiku do neviditelnÈho pl·tna (ern)
+            // Pro kontroln√≠ logiku do neviditeln√©ho pl√°tna (ern)
             checkCtx.clearRect(0, 0, checkCanvas.width, checkCanvas.height);
             checkCtx.font = `bold ${checkCanvas.height * 0.7}px sans-serif`;
             checkCtx.fillStyle = '#000000';
@@ -221,7 +221,7 @@
             checkCtx.fillText(currentLetter, checkCanvas.width / 2, checkCanvas.height / 2);
         }
 
-        // --- Logika kreslenÌ (prst/myö) ---
+        // --- Logika kreslen√≠ (prst/my≈°) ---
         function getPos(e) {
             const rect = drawCanvas.getBoundingClientRect();
             if (e.touches) {
@@ -237,7 +237,7 @@
             drawCtx.beginPath();
             drawCtx.moveTo(pos.x, pos.y);
             draw(e);
-            clearTimeout(checkTimeout); // PeruöenÌ kontroly bhem kreslenÌ
+            clearTimeout(checkTimeout); // Peru≈°en√≠ kontroly bhem kreslen√≠
         }
 
         function endPosition() {
@@ -245,7 +245,7 @@
             isDrawing = false;
             drawCtx.beginPath();
             
-            // Po 1 sekund od zvednutÌ prstu zkontrolujeme, jestli je pÌsmeno hotovÈ
+            // Po 1 sekund od zvednut√≠ prstu zkontrolujeme, jestli je p√≠smeno hotov√©
             checkTimeout = setTimeout(evaluateDrawing, 1000);
         }
 
@@ -257,7 +257,7 @@
             drawCtx.lineWidth = 22;
             drawCtx.lineCap = 'round';
             drawCtx.lineJoin = 'round';
-            drawCtx.strokeStyle = '#2196F3'; // Modr· barva fixy
+            drawCtx.strokeStyle = '#2196F3'; // Modr√° barva fixy
             
             drawCtx.lineTo(pos.x, pos.y);
             drawCtx.stroke();
@@ -265,7 +265,7 @@
             drawCtx.moveTo(pos.x, pos.y);
         }
 
-        // --- VyhodnocenÌ ˙spchu (Pixel coverage) ---
+        // --- Vyhodnocen√≠ √∫spchu (Pixel coverage) ---
         function evaluateDrawing() {
             if (!currentLetter) return;
             
@@ -279,8 +279,8 @@
 
             // Projdeme obraz po pixelech
             for (let i = 0; i < targetData.length; i += 4) {
-                const hasTarget = targetData[i + 3] > 0; // Alpha kan·l pedlohy
-                const hasUser = userData[i + 3] > 0;     // Alpha kan·l dtskÈ kresby
+                const hasTarget = targetData[i + 3] > 0; // Alpha kan√°l pedlohy
+                const hasUser = userData[i + 3] > 0;     // Alpha kan√°l dtsk√© kresby
 
                 if (hasTarget) {
                     targetPixels++;
@@ -288,7 +288,7 @@
                 }
             }
 
-            // Pokud dÌt vymalovalo alespo 55 % plochy pÌsmene
+            // Pokud d√≠t vymalovalo alespo 55 % plochy p√≠smene
             if (targetPixels > 0 && (matchedPixels / targetPixels) > 0.55) {
                 showSuccess();
             }
@@ -297,19 +297,19 @@
         function showSuccess() {
             const overlay = document.getElementById('successOverlay');
             overlay.style.display = 'flex';
-            speak("V˝born!");
+            speak("V√Ωborn!");
             
-            // Po 3 sekund·ch automaticky vyistit pro dalöÌ pokus
+            // Po 3 sekund√°ch automaticky vyistit pro dal≈°√≠ pokus
             setTimeout(() => {
                 overlay.style.display = 'none';
                 clearDrawings();
             }, 3000);
         }
 
-        // --- Uk·zka psanÌ (Animace a öipky) ---
+        // --- Uk√°zka psan√≠ (Animace a ≈°ipky) ---
         async function playDemo() {
             if (!currentLetter || !letterPaths[currentLetter]) {
-                speak("Tohle pÌsmenko zatÌm musÌme zkusit sami.");
+                speak("Tohle p√≠smenko zat√≠m mus√≠me zkusit sami.");
                 return;
             }
             
@@ -320,13 +320,13 @@
             
             bgCtx.lineWidth = 8;
             bgCtx.lineCap = 'round';
-            bgCtx.strokeStyle = '#FF9800'; // Oranûov· pro uk·zku
+            bgCtx.strokeStyle = '#FF9800'; // Oran≈æov√° pro uk√°zku
             
             for (const path of paths) {
                 await animatePath(path, w, h);
-                drawArrow(path, w, h); // NakreslÌ öipku na konci tahu
+                drawArrow(path, w, h); // Nakresl√≠ ≈°ipku na konci tahu
             }
-            setTimeout(drawTemplate, 2500); // Vr·tÌ obrys po uk·zce
+            setTimeout(drawTemplate, 2500); // Vr√°t√≠ obrys po uk√°zce
         }
 
         function animatePath(path, w, h) {
@@ -347,7 +347,7 @@
                         const currentY = startY + (path.to[1] * h - startY) * progress;
                         bgCtx.lineTo(currentX, currentY);
                     } else if (path.type === 'curve') {
-                        // Zjednoduöen· kvadratick· kivka pro animaci
+                        // Zjednodu≈°en√° kvadratick√° kivka pro animaci
                         const ctrlX = path.control[0] * w;
                         const ctrlY = path.control[1] * h;
                         const endX = path.to[0] * w;
@@ -368,7 +368,7 @@
         }
 
         function drawArrow(path, w, h) {
-            // JednoduchÈ pid·nÌ öipky na konec tahu
+            // Jednoduch√© pid√°n√≠ ≈°ipky na konec tahu
             const endX = path.to[0] * w;
             const endY = path.to[1] * h;
             bgCtx.beginPath();
@@ -377,7 +377,7 @@
             bgCtx.fill();
         }
 
-        // Posluchae ud·lostÌ
+        // Posluchae ud√°lost√≠
         drawCanvas.addEventListener('mousedown', startPosition);
         drawCanvas.addEventListener('mouseup', endPosition);
         drawCanvas.addEventListener('mousemove', draw);
